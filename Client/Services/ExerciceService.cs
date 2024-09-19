@@ -17,21 +17,60 @@ namespace STIMULUS_V2.Client.Services
 
         public async Task<APIResponse<Exercice>> Create(Exercice item)
         {
-            var result = await _httpClient.PostAsJsonAsync<Exercice>("api/Exercice/Create", item);
-            var log = Log.ForContext<ExerciceService>();
-            var apiResponse = await result.Content.ReadFromJsonAsync<APIResponse<Exercice>>();
-            log.Information($"Create(Exercice item = {item}) ApiResponse: {apiResponse}");
-            return apiResponse;
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/Exercice/Create", item);
+                var log = Log.ForContext<ExerciceService>();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var apiResponse = await response.Content.ReadFromJsonAsync<APIResponse<Exercice>>();
+                    log.Information($"Create(Exercice item = {item}) ApiResponse: {apiResponse}");
+                    return apiResponse;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    log.Error($"Create(Exercice item = {item}) failed. Status Code: {response.StatusCode}, Error: {errorContent}");
+                    return new APIResponse<Exercice>(default, (int)response.StatusCode, $"Erreur lors de la création : {errorContent}");
+                }
+            }
+            catch (Exception ex)
+            {
+                var log = Log.ForContext<ExerciceService>();
+                log.Error($"Create(Exercice item = {item}) Exception: {ex.Message}");
+                return new APIResponse<Exercice>(default, 500, $"Erreur lors de la création : {ex.Message}");
+            }
         }
 
-        public async Task<APIResponse<string>> ExecuteCode( string json)
+        public async Task<APIResponse<string>> ExecuteCode(string json)
         {
-            var result = await _httpClient.PostAsJsonAsync<string>($"api/Exercice/Execute/{json}", json);
-            var log = Log.ForContext<ExerciceService>();
-            var apiResponse = await result.Content.ReadFromJsonAsync<APIResponse<string>>();
-            log.Information($"ExecuteCode(, string json = {json}) ApiResponse: {apiResponse}");
-            return apiResponse;
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/Exercice/Execute", json);
+                var log = Log.ForContext<ExerciceService>();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var apiResponse = await response.Content.ReadFromJsonAsync<APIResponse<string>>();
+                    log.Information($"ExecuteCode(string json = {json}) ApiResponse: {apiResponse}");
+                    return apiResponse;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    log.Error($"ExecuteCode(string json = {json}) failed. Status Code: {response.StatusCode}, Error: {errorContent}");
+                    return new APIResponse<string>(null, (int)response.StatusCode, $"Erreur lors de l'exécution : {errorContent}");
+                }
+            }
+            catch (Exception ex)
+            {
+                var log = Log.ForContext<ExerciceService>();
+                log.Error($"ExecuteCode(string json = {json}) Exception: {ex.Message}");
+                return new APIResponse<string>(null, 500, $"Erreur lors de l'exécution : {ex.Message}");
+            }
         }
+
 
         public async Task<APIResponse<bool>> Delete(int id)
         {

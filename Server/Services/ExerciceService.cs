@@ -7,6 +7,7 @@ using STIMULUS_V2.Shared.Interface.ChildInterface;
 using STIMULUS_V2.Shared.Models.DTOs;
 using STIMULUS_V2.Shared.Models.Entities;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -15,7 +16,7 @@ namespace STIMULUS_V2.Server.Services
     public class ExerciceService : IExerciceService
     {
         private readonly STIMULUSContext sTIMULUSContext;
-
+        public string sortie;
         public ExerciceService(STIMULUSContext sTIMULUSContext)
         {
             this.sTIMULUSContext = sTIMULUSContext;
@@ -92,7 +93,6 @@ namespace STIMULUS_V2.Server.Services
         // Exécution du code C# en local et récupère la sortie
         public async Task<APIResponse<string>> ExecuteCode(string codeUtilisateur)
         {
-          
             try
             {
                 int cptReadLine = 0;
@@ -108,7 +108,7 @@ namespace STIMULUS_V2.Server.Services
                     donneesUtilisateur = new string[cptReadLine];
                     for (int i = 0; i < cptReadLine; i++)
                     {
-                        // Ici, on peut simuler la récupération d'entrées utilisateur ou utiliser une autre méthode
+                        // Ici, on simule la récupération d'entrées utilisateur
                         donneesUtilisateur[i] = $"Entrée simulation {i + 1}";
                     }
                 }
@@ -124,18 +124,18 @@ namespace STIMULUS_V2.Server.Services
                 await File.WriteAllTextAsync(nomFichier, GenerateProgramFile(codeUtilisateur));
 
                 string projetContenu = @"
-                <Project Sdk=""Microsoft.NET.Sdk"">
-                <PropertyGroup>
-                <OutputType>Exe</OutputType>
-                <TargetFramework>net8.0</TargetFramework>
-                <ImplicitUsings>enable</ImplicitUsings>
-                <Nullable>enable</Nullable>
-                </PropertyGroup>
-                </Project>";
+        <Project Sdk=""Microsoft.NET.Sdk"">
+        <PropertyGroup>
+            <OutputType>Exe</OutputType>
+            <TargetFramework>net8.0</TargetFramework>
+            <ImplicitUsings>enable</ImplicitUsings>
+            <Nullable>enable</Nullable>
+        </PropertyGroup>
+        </Project>";
 
                 await File.WriteAllTextAsync(projetFichier, projetContenu);
 
-                // Compilation locale sans envoi au serveur
+                // Compilation locale
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
@@ -154,50 +154,67 @@ namespace STIMULUS_V2.Server.Services
                 string errorCompilation = await processus.StandardError.ReadToEndAsync();
                 processus.WaitForExit();
 
-                if (processus.ExitCode == 0)
+                if (processus.ExitCode != 0)
                 {
-                    // Exécution du programme après compilation
-                    var processInfo = new ProcessStartInfo
-                    {
-                        FileName = exePath,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        RedirectStandardInput = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
+                    // Nettoyage en cas d'erreur de compilation
+                    CleanUp(cheminFichier);
+                    return new APIResponse<string>(sortieCompilation + errorCompilation, 500, "Erreur lors de la compilation");
+                }
 
-                    using var process = new Process { StartInfo = processInfo };
-                    process.Start();
+                // Exécution du programme après compilation
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    RedirectStandardInput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
 
-                    if (cptReadLine > 0)
+                using var process = new Process { StartInfo = processInfo };
+                process.Start();
+
+                if (cptReadLine > 0)
+                {
+                    using StreamWriter sw = process.StandardInput;
+                    foreach (var donnee in donneesUtilisateur)
                     {
-                        using (StreamWriter sw = process.StandardInput)
+                        if (sw.BaseStream.CanWrite)
                         {
-                            for (int i = 0; i < cptReadLine; i++)
-                            {
-                                if (sw.BaseStream.CanWrite)
-                                {
-                                    await sw.WriteLineAsync(donneesUtilisateur[i]);
-                                }
-                            }
+                            await sw.WriteLineAsync(donnee);
                         }
                     }
-
-                    string sortieExecution = await process.StandardOutput.ReadToEndAsync();
-                    string errorExecution = await process.StandardError.ReadToEndAsync();
-                    process.WaitForExit();
-
-                    return new APIResponse<string>(string.IsNullOrEmpty(sortieExecution) ? errorExecution : sortieExecution, 200, "Succès");
                 }
-                else
-                {
-                    return new APIResponse<string>(sortieCompilation, 500, "Erreur lors de la compilation");
-                }
+
+                string sortieExecution = await process.StandardOutput.ReadToEndAsync();
+                string errorExecution = await process.StandardError.ReadToEndAsync();
+                process.WaitForExit();
+
+                // Nettoyage après exécution
+                CleanUp(cheminFichier);
+
+                return new APIResponse<string>(string.IsNullOrEmpty(sortieExecution) ? errorExecution : sortieExecution, 200, "Succès");
             }
             catch (Exception ex)
             {
                 return new APIResponse<string>(null, 500, $"Erreur lors de l'exécution du code. Message : {ex.Message}");
+            }
+        }
+
+        private void CleanUp(string cheminFichier)
+        {
+            try
+            {
+                if (Directory.Exists(cheminFichier))
+                {
+                    Directory.Delete(cheminFichier, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error or handle cleanup errors
+                Console.WriteLine($"Erreur lors du nettoyage des fichiers temporaires : {ex.Message}");
             }
         }
 

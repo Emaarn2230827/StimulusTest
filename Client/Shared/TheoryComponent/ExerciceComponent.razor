@@ -1,16 +1,22 @@
 @using Newtonsoft.Json;
 @using STIMULUS_V2.Shared.Interface.ChildInterface;
+@using STIMULUS_V2.Shared.Models.DTOs
 @using STIMULUS_V2.Shared.Models.Entities;
-@using BlazorMonaco
-@using BlazorMonaco.Editor
-@using BlazorMonaco.Languages
-@using System.Web
+@using BlazorMonaco;
+@using BlazorMonaco.Editor;
+@using BlazorMonaco.Languages;
+@using System.Web;
+@using System.Text;
+@using System.Net.Http;
+@using System.Net.Http.Headers;
 
 @inject IFichierSauvegardeService FichierSauvegardeService
 @inject IExerciceService ExerciceService
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage;
 @inject IJSRuntime JsRunTime
 @inject DialogService DialogService
+@inject HttpClient HttpClient
+
 
 @if (InitDone)
 {
@@ -23,7 +29,7 @@
                     <div class="file-tab">
                         <button @onclick="() => ChangeTab(fichier.Id)" class="custom-gestion-subtitle" style="color: @(fichier.Css == "focused" ? "white" : "grey")">@((fichier.Nom != null) ? fichier.Nom : "")</button>
 
-                        @if (fichier.Nom != "Main.py" && fichier.Nom != "main.py")
+                        @if (fichier.Nom != "Program.cs" && fichier.Nom != "program.cs")
                         {
                             // pour permettre la suppression des pages qui ne sont pas Main.py donc on ne peut pas supp le main
                             <button class="close-button" @onclick="() => Delete(fichier.Id)">X</button>
@@ -103,7 +109,27 @@
 
     private StandaloneCodeEditor _editor { get; set; }
     private bool showDeleteConfirmation = false;
+    private const string texteDefaut = "using System;\n\n" +
+                               "class Program\n" +
+                               "{\n" +
+                               "\tstatic void Main(string[] args)\n" +
+                               "\t{\n" +
+                               "\t\tConsole.WriteLine(\"Hello World!\");\n" +
+                               "\t}\n" +
+                               "}"; 
 
+    private string TexteDefaut2(string nom)
+    {
+        if (nom.EndsWith(".cs")) 
+        {
+            // retirer ".cs" à la fin du nom du fichier
+            nom = nom.Substring(0, nom.Length - 3);
+        }
+        return "using System;\n\n" +
+                       "internal class " + nom + "\n" +
+                       "{\n" +
+                       "}";
+    }
     /// <summary>
     /// Initialise le composant en allant chercher les fichiers d'ecercice correspondants
     /// </summary>
@@ -139,8 +165,8 @@
             {
                 FichierCode.Add(new Fichier()
                 {
-                    Contenu = "print('Hello World !')",
-                    Nom = "main.py",
+                    Contenu = texteDefaut,
+                    Nom = "Program.cs",
                     Id = -(FichierCode.Count + 1),
                     Css = HiddenTab
                 });
@@ -150,8 +176,8 @@
 
                 var fichierSauv = new FichierSauvegarde()
                 {
-                    Nom = "main.py",
-                    Contenue = "print('Hello World !')",
+                    Nom = "Program.cs",
+                    Contenue = texteDefaut,
                     Version = DateTime.Now,
                     CodeDA = IdEtudiant,
                     ExerciceId = exercice.ExerciceId
@@ -182,14 +208,7 @@
         }
         return code;
     }
-    private const string texteDefaut = "using System;\n\n" +
-                                   "class Program\n" +
-                                   "{\n" +
-                                   "\tstatic void Main(string[] args)\n" +
-                                   "\t{\n" +
-                                   "\t\tConsole.WriteLine(\"Hello World!\");\n" +
-                                   "\t}\n" +
-                                   "}";
+
 
     private async Task SetCode(string code = texteDefaut)
     {
@@ -216,7 +235,7 @@
     /// <summary>
     /// FocusedTab : attribut pour afficher le textarea
     /// HiddenTab : attribut pour cacher le textarea
-    /// Result : résultat du code python de l'étudiant
+    /// Result : résultat du code de l'étudiant
     /// InitDone : Dit si oui ou non l'initialisation du component est fait
     /// </summary>
     [Inject]
@@ -303,8 +322,7 @@
     private async void Post()
     {
         List<object> fichiers = new List<object>();
-        string jsonString = "";
-        int id = FichierCode.FirstOrDefault().Id;
+        int id = FichierCode.FirstOrDefault()?.Id ?? -1;
 
         Result = "Compilation et exécution du code...";
         pythonLoading = true;
@@ -319,10 +337,12 @@
                 break;
             }
         }
+
         foreach (var fichier in FichierCode)
         {
-            if (fichier.Nom == "Main.cs") // Adaptation pour fichiers C#
-                fichier.Nom = "main.cs";
+            if (fichier.Nom == "Program.cs")
+                fichier.Nom = "program.cs";
+
             await ChangeTab(fichier.Id);
             string texte = await GetCode();
             fichiers.Add(new
@@ -331,19 +351,37 @@
                 Contenu = texte.Replace("\"", "\'")
             });
         }
+
         await ChangeTab(id);
 
-        jsonString = JsonConvert.SerializeObject(fichiers);
-        string urlString = Uri.EscapeDataString(jsonString);
+        string jsonString = JsonConvert.SerializeObject(fichiers);
+        var content = new StringContent(jsonString, Encoding.UTF8, "application/json"); // Fix here
 
-        // Appeler le service C# au lieu de Python
-        var sortieApi = await ExerciceService.ExecuteCode( urlString); // Ici il faut utiliser un service qui compile du C#
-        Result = sortieApi.Data;
-        pythonLoading = false;
-        StateHasChanged();
+        try
+        {
+            var response = await HttpClient.PostAsync("api/Exercice/Execute", content); // Fix here
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            var apiResponse = JsonConvert.DeserializeObject<APIResponse<string>>(responseString);
+            if (apiResponse != null && apiResponse.StatusCode == 200)
+            {
+                Result = apiResponse.Data;
+            }
+            else
+            {
+                Result = $"Erreur: {apiResponse?.Message ?? "Réponse invalide"}";
+            }
+        }
+        catch (Exception e)
+        {
+            Result = $"Erreur lors de l'exécution du code: {e.Message}";
+        }
+        finally
+        {
+            pythonLoading = false;
+            StateHasChanged();
+        }
     }
-
-
     /// <summary>
     /// Sauvegarde le fichier python de l'étudiant
     /// </summary>
@@ -483,7 +521,7 @@
 
                 FichierCode.Add(new Fichier()
                         {
-                            Contenu = "using System;\n\nclass Program\n{\n\tstatic void Main(string[] args)\n\t{\n\t\tConsole.WriteLine(\"Hello World!\");\n\t}\n}",
+                            Contenu = TexteDefaut2(nomFichier),
                             Nom = nomFichier,
                             Id = -(FichierCode.Count + 1),
                             Css = FocusedTab

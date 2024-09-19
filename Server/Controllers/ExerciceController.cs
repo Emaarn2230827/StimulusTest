@@ -26,11 +26,11 @@ namespace STIMULUS_V2.Server.Controllers
             log.Information($"Create([FromBody] Exercice exercice = {exercice}) \n  Response: {apiResponse}");
             return apiResponse;
         }
-
-        [HttpPost("Execute/{da}/{json}")]
-        public async Task<IActionResult> ExecuteCode(string da, string json)
+        //modification
+        [HttpPost("Execute")]
+        public async Task<IActionResult> ExecuteCode([FromBody] string json)
         {
-            var response = await exerciceService.ExecuteCode( json);
+            var response = await exerciceService.ExecuteCode(json);
             return StatusCode(response.StatusCode, response);
         }
 
