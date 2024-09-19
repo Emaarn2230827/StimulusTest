@@ -47,7 +47,7 @@ namespace STIMULUS_V2.Client.Services
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("api/Exercice/Execute", json);
+                var response = await _httpClient.PostAsJsonAsync<string>($"api/Exercice/Execute", json);
                 var log = Log.ForContext<ExerciceService>();
 
                 if (response.IsSuccessStatusCode)
