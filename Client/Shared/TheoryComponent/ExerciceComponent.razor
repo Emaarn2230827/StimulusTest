@@ -109,20 +109,20 @@
 
     private StandaloneCodeEditor _editor { get; set; }
     private bool showDeleteConfirmation = false;
-    private const string texteDefaut = 
-                               "\t\tConsole.WriteLine(\"Hello World!\");\n"; 
+    private const string texteDefaut =
+                           "\t\tConsole.WriteLine(\"Hello World!\");\n";
 
     private string TexteDefaut2(string nom)
     {
-        if (nom.EndsWith(".cs")) 
+        if (nom.EndsWith(".cs"))
         {
             // retirer ".cs" à la fin du nom du fichier
             nom = nom.Substring(0, nom.Length - 3);
         }
         return "using System;\n\n" +
-                       "internal class " + nom + "\n" +
-                       "{\n" +
-                       "}";
+                   "internal class " + nom + "\n" +
+                   "{\n" +
+                   "}";
     }
     /// <summary>
     /// Initialise le composant en allant chercher les fichiers d'ecercice correspondants
@@ -138,6 +138,7 @@
 
         try
         {
+            //recupere tous les exercices dans la bd dans fichierSauvegarde
             var fichiersSauvegardesCall = await FichierSauvegardeService.GetAllExercice(exercice.ExerciceId, IdEtudiant);
 
             var fichier = fichiersSauvegardesCall.Data;
@@ -145,12 +146,12 @@
             foreach (var fichierListSauvegarde in fichier)
             {
                 FichierCode.Add(new Fichier()
-                {
-                    Contenu = fichierListSauvegarde.Contenue,
-                    Nom = fichierListSauvegarde.Nom,
-                    Id = fichierListSauvegarde.FichierSauvegardeId,
-                    Css = HiddenTab
-                });
+                        {
+                            Contenu = fichierListSauvegarde.Contenue,
+                            Nom = fichierListSauvegarde.Nom,
+                            Id = fichierListSauvegarde.FichierSauvegardeId,
+                            Css = HiddenTab
+                        });
             }
         }
         catch (Exception e)
@@ -158,24 +159,24 @@
             if (FichierCode == null || FichierCode.Count == 0)
             {
                 FichierCode.Add(new Fichier()
-                {
-                    Contenu = texteDefaut,
-                    Nom = "Program.cs",
-                    Id = -(FichierCode.Count + 1),
-                    Css = HiddenTab
-                });
+                        {
+                            Contenu = texteDefaut,
+                            Nom = "Program.cs",
+                            Id = -(FichierCode.Count + 1),
+                            Css = HiddenTab
+                        });
 
                 int id = -1;
                 List<FichierSauvegarde> fichiersSauvegardes = new List<FichierSauvegarde>();
 
                 var fichierSauv = new FichierSauvegarde()
-                {
-                    Nom = "Program.cs",
-                    Contenue = texteDefaut,
-                    Version = DateTime.Now,
-                    CodeDA = IdEtudiant,
-                    ExerciceId = exercice.ExerciceId
-                };
+                        {
+                            Nom = "Program.cs",
+                            Contenue = texteDefaut,
+                            Version = DateTime.Now,
+                            CodeDA = IdEtudiant,
+                            ExerciceId = exercice.ExerciceId
+                        };
                 try
                 {
                     await FichierSauvegardeService.Create(fichierSauv);
@@ -186,7 +187,7 @@
                 }
 
                 StateHasChanged();
-            }   
+            }
         }
         InitDone = true;
         await base.OnInitializedAsync();
@@ -311,66 +312,50 @@
     }
 
     /// <summary>
-    /// Envoit le code de l'étudiant à l'interpréteur
+    /// Envoit le code de l'étudiant à l'interpréteur  //A changer
     /// </summary>
     private async void Post()
     {
         List<object> fichiers = new List<object>();
-        int id = FichierCode.FirstOrDefault()?.Id ?? -1;
 
         Result = "Compilation et exécution du code...";
         pythonLoading = true;
         Console.WriteLine("Running C# code...");
         StateHasChanged();
-
+        //récupération du fichier dont le nom est program.cs
+        var fichierProgram = FichierCode.FirstOrDefault(f => f.Nom.Equals("program.cs", StringComparison.OrdinalIgnoreCase));
         foreach (var fichier in FichierCode)
         {
-            if (fichier.Css != "hidden")
+            if (fichierProgram != null)
             {
-                id = fichier.Id;
-                break;
+               // string texte = await GetCode();
+                string texte = fichierProgram.Contenu;
+                fichiers.Add(new
+                {
+                    Nom = fichier.Nom,
+                    Contenu = texte // Ne modifiez pas le contenu
+                });
             }
         }
 
-        foreach (var fichier in FichierCode)
-        {
-            if (fichier.Nom == "Program.cs")
-                fichier.Nom = "program.cs";
-
-            await ChangeTab(fichier.Id);
-            string texte = await GetCode();
-            fichiers.Add(new
-            {
-                Nom = fichier.Nom,
-                Contenu = texte.Replace("\"", "\'")
-            });
-        }
-
-        await ChangeTab(id);
-
+        // Sérialisation en JSON
         string jsonString = JsonConvert.SerializeObject(fichiers);
-        string urlString = Uri.EscapeDataString(jsonString);
 
-        // var sortieApi = await ExerciceService.ExecuteCode(urlString);
-        // Result = sortieApi.Data;
+        // Désérialisation pour obtenir uniquement le contenu
+        dynamic temp = JsonConvert.DeserializeObject(jsonString);
+        string code = string.Empty;
 
-
-        var content = new StringContent(jsonString, Encoding.UTF8, "application/json"); 
+        // Récupération du contenu
+        foreach (var item in temp)
+        {
+            code += item.Contenu + "\n"; // Combinez les contenus si nécessaire
+        }
 
         try
         {
-            var response = await HttpClient.PostAsync("api/Exercice/Execute", content); // Fix here
-            var responseString = await response.Content.ReadAsStringAsync();
-
-            var apiResponse = JsonConvert.DeserializeObject<APIResponse<string>>(responseString);
-            if (apiResponse != null && apiResponse.StatusCode == 200)
-            {
-                Result = apiResponse.Data;
-            }
-            else
-            {
-                Result = $"Erreur: {apiResponse?.Message ?? "Réponse invalide"}";
-            }
+            // Envoi du code à l'API
+            var response = await ExerciceService.ExecuteCode(code);
+            Result = response.Data ?? "No output returned.";
         }
         catch (Exception e)
         {
@@ -381,9 +366,9 @@
             pythonLoading = false;
             StateHasChanged();
         }
-        pythonLoading = false;
-       StateHasChanged();
     }
+
+
     /// <summary>
     /// Sauvegarde le fichier python de l'étudiant
     /// </summary>
@@ -399,27 +384,27 @@
             }
             await ChangeTab(fichier.Id);
             fichiersSauvegardes.Add(new FichierSauvegarde()
-            {
-                FichierSauvegardeId = fichier.Id,
-                Nom = fichier.Nom,
-                Contenue = fichier.Contenu,
-                Version = DateTime.Now,
-                CodeDA = IdEtudiant,
-                ExerciceId = exercice.ExerciceId
-            });
+                    {
+                        FichierSauvegardeId = fichier.Id,
+                        Nom = fichier.Nom,
+                        Contenue = fichier.Contenu,
+                        Version = DateTime.Now,
+                        CodeDA = IdEtudiant,
+                        ExerciceId = exercice.ExerciceId
+                    });
         }
         try
         {
             foreach (var PostFichier in fichiersSauvegardes)
             {
                 var tempoFi = new FichierSauvegarde()
-                {
-                    Nom = PostFichier.Nom,
-                    Contenue = PostFichier.Contenue,
-                    Version = DateTime.Now,
-                    CodeDA = IdEtudiant,
-                    ExerciceId = exercice.ExerciceId
-                };
+                        {
+                            Nom = PostFichier.Nom,
+                            Contenue = PostFichier.Contenue,
+                            Version = DateTime.Now,
+                            CodeDA = IdEtudiant,
+                            ExerciceId = exercice.ExerciceId
+                        };
                 try
                 {
                     var fichierTest = await FichierSauvegardeService.Get(PostFichier.FichierSauvegardeId);
@@ -439,12 +424,12 @@
             foreach (var fichierListSauvegarde in fichier)
             {
                 FichierCode.Add(new Fichier()
-                {
-                    Contenu = fichierListSauvegarde.Contenue,
-                    Nom = fichierListSauvegarde.Nom,
-                    Id = fichierListSauvegarde.FichierSauvegardeId,
-                    Css = HiddenTab
-                });
+                        {
+                            Contenu = fichierListSauvegarde.Contenue,
+                            Nom = fichierListSauvegarde.Nom,
+                            Id = fichierListSauvegarde.FichierSauvegardeId,
+                            Css = HiddenTab
+                        });
             }
             //FichierCode[0].Css = FocusedTab;
         }
@@ -539,19 +524,19 @@
         StateHasChanged();
     }
 
-    // Ajout d'une page 
+    // Ajout d'une page
     async Task AlertAddPage()
     {
         var result = await DialogService.OpenAsync("Ajouter une page", ds =>
-        @<RadzenStack Gap="1.5rem">
+    @<RadzenStack Gap="1.5rem">
         <RadzenTextBox class="custom-gestion-subtitle" Style="width: 100%;" Name="Nom" @bind-Value="NomFichier" />
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                <RadzenStack Orientation="Orientation.Horizontal">
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenStack Orientation="Orientation.Horizontal">
                 <RadzenButton Text="Ajouter" Click="(() => AddPage(NomFichier, ds))" ButtonStyle="ButtonStyle.Primary" />
                 <RadzenButton Text="Annuler" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
-                </RadzenStack>
             </RadzenStack>
         </RadzenStack>
+    </RadzenStack>
     );
     }
 
