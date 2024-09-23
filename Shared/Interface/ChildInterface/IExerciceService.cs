@@ -11,7 +11,7 @@ namespace STIMULUS_V2.Shared.Interface.ChildInterface
 {
     public interface IExerciceService : IModelService<Exercice, int>
     {
-        
         Task<APIResponse<string>> ExecuteCode(string codeUtilisateur);
+
     }
 }

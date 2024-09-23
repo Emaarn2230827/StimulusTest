@@ -43,33 +43,33 @@ namespace STIMULUS_V2.Client.Services
             }
         }
 
-        public async Task<APIResponse<string>> ExecuteCode(string json)
-        {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync<string>($"api/Exercice/Execute", json);
-                var log = Log.ForContext<ExerciceService>();
+        //public async Task<APIResponse<string>> ExecuteCode(string json)
+        //{
+        //    try
+        //    {
+        //        var response = await _httpClient.PostAsJsonAsync<string>($"api/Exercice/Execute", json);
+        //        var log = Log.ForContext<ExerciceService>();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    var apiResponse = await response.Content.ReadFromJsonAsync<APIResponse<string>>();
-                    log.Information($"ExecuteCode(string json = {json}) ApiResponse: {apiResponse}");
-                    return apiResponse;
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    log.Error($"ExecuteCode(string json = {json}) failed. Status Code: {response.StatusCode}, Error: {errorContent}");
-                    return new APIResponse<string>(null, (int)response.StatusCode, $"Erreur lors de l'exécution : {errorContent}");
-                }
-            }
-            catch (Exception ex)
-            {
-                var log = Log.ForContext<ExerciceService>();
-                log.Error($"ExecuteCode(string json = {json}) Exception: {ex.Message}");
-                return new APIResponse<string>(null, 500, $"Erreur lors de l'exécution : {ex.Message}");
-            }
-        }
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            var apiResponse = await response.Content.ReadFromJsonAsync<APIResponse<string>>();
+        //            log.Information($"ExecuteCode(string json = {json}) ApiResponse: {apiResponse}");
+        //            return apiResponse;
+        //        }
+        //        else
+        //        {
+        //            var errorContent = await response.Content.ReadAsStringAsync();
+        //            log.Error($"ExecuteCode(string json = {json}) failed. Status Code: {response.StatusCode}, Error: {errorContent}");
+        //            return new APIResponse<string>(null, (int)response.StatusCode, $"Erreur lors de l'exécution : {errorContent}");
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        var log = Log.ForContext<ExerciceService>();
+        //        log.Error($"ExecuteCode(string json = {json}) Exception: {ex.Message}");
+        //        return new APIResponse<string>(null, 500, $"Erreur lors de l'exécution : {ex.Message}");
+        //    }
+        //}
 
 
         public async Task<APIResponse<bool>> Delete(int id)

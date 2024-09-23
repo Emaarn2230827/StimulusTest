@@ -351,39 +351,39 @@
         string jsonString = JsonConvert.SerializeObject(fichiers);
         string urlString = Uri.EscapeDataString(jsonString);
 
-        var sortieApi = await ExerciceService.ExecuteCode(urlString);
-        Result = sortieApi.Data;
+        // var sortieApi = await ExerciceService.ExecuteCode(urlString);
+        // Result = sortieApi.Data;
 
 
-    //     var content = new StringContent(jsonString, Encoding.UTF8, "application/json"); 
+        var content = new StringContent(jsonString, Encoding.UTF8, "application/json"); 
 
-    //     try
-    //     {
-    //         var response = await HttpClient.PostAsync("api/Exercice/Execute", content); // Fix here
-    //         var responseString = await response.Content.ReadAsStringAsync();
+        try
+        {
+            var response = await HttpClient.PostAsync("api/Exercice/Execute", content); // Fix here
+            var responseString = await response.Content.ReadAsStringAsync();
 
-    //         var apiResponse = JsonConvert.DeserializeObject<APIResponse<string>>(responseString);
-    //         if (apiResponse != null && apiResponse.StatusCode == 200)
-    //         {
-    //             Result = apiResponse.Data;
-    //         }
-    //         else
-    //         {
-    //             Result = $"Erreur: {apiResponse?.Message ?? "Réponse invalide"}";
-    //         }
-    //     }
-    //     catch (Exception e)
-    //     {
-    //         Result = $"Erreur lors de l'exécution du code: {e.Message}";
-    //     }
-    //     finally
-    //     {
-    //         pythonLoading = false;
-    //         StateHasChanged();
-    //     }
-    //     pythonLoading = false;
-    //    StateHasChanged();
-    // }
+            var apiResponse = JsonConvert.DeserializeObject<APIResponse<string>>(responseString);
+            if (apiResponse != null && apiResponse.StatusCode == 200)
+            {
+                Result = apiResponse.Data;
+            }
+            else
+            {
+                Result = $"Erreur: {apiResponse?.Message ?? "Réponse invalide"}";
+            }
+        }
+        catch (Exception e)
+        {
+            Result = $"Erreur lors de l'exécution du code: {e.Message}";
+        }
+        finally
+        {
+            pythonLoading = false;
+            StateHasChanged();
+        }
+        pythonLoading = false;
+       StateHasChanged();
+    }
     /// <summary>
     /// Sauvegarde le fichier python de l'étudiant
     /// </summary>

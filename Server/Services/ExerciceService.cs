@@ -91,116 +91,116 @@ namespace STIMULUS_V2.Server.Services
             return new APIResponse<bool>(false, 404, "Exercice non trouvé");
         }
         // Exécution du code C# en local et récupère la sortie
-        public async Task<APIResponse<string>> ExecuteCode(string codeUtilisateur)
-        {
-            try
-            {
-                int cptReadLine = 0;
-                string[] donneesUtilisateur = null;
+        //public async Task<APIResponse<string>> ExecuteCode(string codeUtilisateur)
+        //{
+        //    try
+        //    {
+        //        int cptReadLine = 0;
+        //        string[] donneesUtilisateur = null;
 
-                // Vérification de la nécessité d'appels à Console.ReadLine()
-                var regex = new Regex(@"Console\.ReadLine\s*\(\s*\)\s*;");
-                var matches = regex.Matches(codeUtilisateur);
-                cptReadLine = matches.Count;
+        //        // Vérification de la nécessité d'appels à Console.ReadLine()
+        //        var regex = new Regex(@"Console\.ReadLine\s*\(\s*\)\s*;");
+        //        var matches = regex.Matches(codeUtilisateur);
+        //        cptReadLine = matches.Count;
 
-                if (cptReadLine > 0)
-                {
-                    donneesUtilisateur = new string[cptReadLine];
-                    for (int i = 0; i < cptReadLine; i++)
-                    {
-                        // Ici, on simule la récupération d'entrées utilisateur
-                        donneesUtilisateur[i] = $"Entrée simulation {i + 1}";
-                    }
-                }
+        //        if (cptReadLine > 0)
+        //        {
+        //            donneesUtilisateur = new string[cptReadLine];
+        //            for (int i = 0; i < cptReadLine; i++)
+        //            {
+        //                // Ici, on simule la récupération d'entrées utilisateur
+        //                donneesUtilisateur[i] = $"Entrée simulation {i + 1}";
+        //            }
+        //        }
 
-                // Création des fichiers temporaires pour le projet et compilation
-                string cheminFichier = Path.Combine(Path.GetTempPath(), "MonProjet");
-                string nomFichier = Path.Combine(cheminFichier, "Program.cs");
-                string projetFichier = Path.Combine(cheminFichier, "MonProjet.csproj");
-                string outputDir = Path.Combine(cheminFichier, "bin", "Debug", "net8.0");
-                string exePath = Path.Combine(outputDir, "MonProjet.exe");
+        //        // Création des fichiers temporaires pour le projet et compilation
+        //        string cheminFichier = Path.Combine(Path.GetTempPath(), "MonProjet");
+        //        string nomFichier = Path.Combine(cheminFichier, "Program.cs");
+        //        string projetFichier = Path.Combine(cheminFichier, "MonProjet.csproj");
+        //        string outputDir = Path.Combine(cheminFichier, "bin", "Debug", "net8.0");
+        //        string exePath = Path.Combine(outputDir, "MonProjet.exe");
 
-                Directory.CreateDirectory(cheminFichier);
-                await File.WriteAllTextAsync(nomFichier, GenerateProgramFile(codeUtilisateur));
+        //        Directory.CreateDirectory(cheminFichier);
+        //        await File.WriteAllTextAsync(nomFichier, GenerateProgramFile(codeUtilisateur));
 
-                string projetContenu = @"
-        <Project Sdk=""Microsoft.NET.Sdk"">
-        <PropertyGroup>
-            <OutputType>Exe</OutputType>
-            <TargetFramework>net8.0</TargetFramework>
-            <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
-        </PropertyGroup>
-        </Project>";
+        //        string projetContenu = @"
+        //<Project Sdk=""Microsoft.NET.Sdk"">
+        //<PropertyGroup>
+        //    <OutputType>Exe</OutputType>
+        //    <TargetFramework>net8.0</TargetFramework>
+        //    <ImplicitUsings>enable</ImplicitUsings>
+        //    <Nullable>enable</Nullable>
+        //</PropertyGroup>
+        //</Project>";
 
-                await File.WriteAllTextAsync(projetFichier, projetContenu);
+        //        await File.WriteAllTextAsync(projetFichier, projetContenu);
 
-                // Compilation locale
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "dotnet",
-                    Arguments = "build",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WorkingDirectory = cheminFichier,
-                };
+        //        // Compilation locale
+        //        var startInfo = new ProcessStartInfo
+        //        {
+        //            FileName = "dotnet",
+        //            Arguments = "build",
+        //            RedirectStandardOutput = true,
+        //            RedirectStandardError = true,
+        //            UseShellExecute = false,
+        //            CreateNoWindow = true,
+        //            WorkingDirectory = cheminFichier,
+        //        };
 
-                using var processus = new Process { StartInfo = startInfo };
-                processus.Start();
+        //        using var processus = new Process { StartInfo = startInfo };
+        //        processus.Start();
 
-                string sortieCompilation = await processus.StandardOutput.ReadToEndAsync();
-                string errorCompilation = await processus.StandardError.ReadToEndAsync();
-                processus.WaitForExit();
+        //        string sortieCompilation = await processus.StandardOutput.ReadToEndAsync();
+        //        string errorCompilation = await processus.StandardError.ReadToEndAsync();
+        //        processus.WaitForExit();
 
-                if (processus.ExitCode != 0)
-                {
-                    // Nettoyage en cas d'erreur de compilation
-                    CleanUp(cheminFichier);
-                    return new APIResponse<string>(sortieCompilation + errorCompilation, 500, "Erreur lors de la compilation");
-                }
+        //        if (processus.ExitCode != 0)
+        //        {
+        //            // Nettoyage en cas d'erreur de compilation
+        //            CleanUp(cheminFichier);
+        //            return new APIResponse<string>(sortieCompilation + errorCompilation, 500, "Erreur lors de la compilation");
+        //        }
 
-                // Exécution du programme après compilation
-                var processInfo = new ProcessStartInfo
-                {
-                    FileName = exePath,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    RedirectStandardInput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
+        //        // Exécution du programme après compilation
+        //        var processInfo = new ProcessStartInfo
+        //        {
+        //            FileName = exePath,
+        //            RedirectStandardOutput = true,
+        //            RedirectStandardError = true,
+        //            RedirectStandardInput = true,
+        //            UseShellExecute = false,
+        //            CreateNoWindow = true
+        //        };
 
-                using var process = new Process { StartInfo = processInfo };
-                process.Start();
+        //        using var process = new Process { StartInfo = processInfo };
+        //        process.Start();
 
-                if (cptReadLine > 0)
-                {
-                    using StreamWriter sw = process.StandardInput;
-                    foreach (var donnee in donneesUtilisateur)
-                    {
-                        if (sw.BaseStream.CanWrite)
-                        {
-                            await sw.WriteLineAsync(donnee);
-                        }
-                    }
-                }
+        //        if (cptReadLine > 0)
+        //        {
+        //            using StreamWriter sw = process.StandardInput;
+        //            foreach (var donnee in donneesUtilisateur)
+        //            {
+        //                if (sw.BaseStream.CanWrite)
+        //                {
+        //                    await sw.WriteLineAsync(donnee);
+        //                }
+        //            }
+        //        }
 
-                string sortieExecution = await process.StandardOutput.ReadToEndAsync();
-                string errorExecution = await process.StandardError.ReadToEndAsync();
-                process.WaitForExit();
+        //        string sortieExecution = await process.StandardOutput.ReadToEndAsync();
+        //        string errorExecution = await process.StandardError.ReadToEndAsync();
+        //        process.WaitForExit();
 
-                // Nettoyage après exécution
-                CleanUp(cheminFichier);
+        //        // Nettoyage après exécution
+        //        CleanUp(cheminFichier);
 
-                return new APIResponse<string>(string.IsNullOrEmpty(sortieExecution) ? errorExecution : sortieExecution, 200, "Succès");
-            }
-            catch (Exception ex)
-            {
-                return new APIResponse<string>(null, 500, $"Erreur lors de l'exécution du code. Message : {ex.Message}");
-            }
-        }
+        //        return new APIResponse<string>(string.IsNullOrEmpty(sortieExecution) ? errorExecution : sortieExecution, 200, "Succès");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new APIResponse<string>(null, 500, $"Erreur lors de l'exécution du code. Message : {ex.Message}");
+        //    }
+        //}
 
         private void CleanUp(string cheminFichier)
         {
