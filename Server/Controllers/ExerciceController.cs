@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Serilog;
 using STIMULUS_V2.Shared.Interface.ChildInterface;
 using STIMULUS_V2.Shared.Models.Entities;
@@ -27,12 +28,27 @@ namespace STIMULUS_V2.Server.Controllers
             return apiResponse;
         }
         //modification
+        //[HttpPost("Execute")]
+        //public async Task<IActionResult> ExecuteCode([FromBody] string json)
+        //{
+        //    var response = await exerciceService.ExecuteCode(json);
+        //    return StatusCode(response.StatusCode, response);
+        //}
+
         [HttpPost("Execute")]
-        public async Task<IActionResult> ExecuteCode([FromBody] string json)
+        public async Task<IActionResult> ExecuteCode([FromBody] string code)
         {
-            var response = await exerciceService.ExecuteCode(json);
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return BadRequest("Le code ne peut pas être vide.");
+            }
+
+            var response = await exerciceService.ExecuteCode(code);
             return StatusCode(response.StatusCode, response);
         }
+
+
+
 
         [HttpDelete("Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
