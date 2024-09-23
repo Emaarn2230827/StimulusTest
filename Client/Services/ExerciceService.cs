@@ -13,6 +13,8 @@ namespace STIMULUS_V2.Client.Services
         public ExerciceService(HttpClient httpClient)
         {
             _httpClient = httpClient;
+
+           
         }
 
         public async Task<APIResponse<Exercice>> Create(Exercice item)
