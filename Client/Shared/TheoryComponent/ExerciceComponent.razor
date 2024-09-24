@@ -9,6 +9,7 @@
 @using System.Text;
 @using System.Net.Http;
 @using System.Net.Http.Headers;
+@using System.Text.RegularExpressions
 
 @inject IFichierSauvegardeService FichierSauvegardeService
 @inject IExerciceService ExerciceService
@@ -240,7 +241,8 @@
     private string IdEtudiant { get; set; } = string.Empty;
     private string Result { get; set; } = string.Empty;
     private bool InitDone { get; set; } = false;
-
+    private int cptReadLine = 0;
+    private string[] donneesUtilisateur;
 
     /// <summary>
     /// Classe interne pour les fichiers
@@ -256,6 +258,7 @@
         public string Css { get; set; }
         public string Nom { get; set; }
         public string Contenu { get; set; }
+
 
         public Fichier(int id, string nom, string contenu)
         {
@@ -349,6 +352,15 @@
             code += item.Contenu + "\n"; // Combinez les contenus si nécessaire
         }
 
+        VerifierBesoinDonnees(code);
+        if (cptReadLine > 0)
+        {
+            donneesUtilisateur = new string[cptReadLine];
+            for (int i = 0; i < cptReadLine; i++)
+            {
+                donneesUtilisateur[i] = await PromptUser($"Entrez la valeur pour Console.ReadLine() #{i + 1}:");
+            }
+        }
         try
         {
             // Envoi du code à l'API
@@ -536,6 +548,18 @@
             </RadzenStack>
         </RadzenStack>
     );
+    }
+
+    private void VerifierBesoinDonnees(string codeUtilisateur)
+    {
+        var regex = new Regex(@"Console\.ReadLine\s*\(\s*\)\s*;");
+        var matches = regex.Matches(codeUtilisateur);
+        cptReadLine = matches.Count;
+    }
+    private async Task<string> PromptUser(string message)
+    {
+        // Placeholder pour l'appel JavaScript. Remplacer par une logique de prompt appropriée.
+        return await Task.FromResult("Valeur de l'utilisateur");
     }
 
     public EventCallback<List<FichierSource>> FichierSourceChanged { get; set; }
