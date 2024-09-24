@@ -229,18 +229,7 @@ namespace STIMULUS_V2.Server.Services
 
         private string GenerateProgramFile(string codeUtilisateur)
         {
-            string modele = @"
-            using System;
-            namespace MyApplication
-            {
-                class Program
-                {
-                    static void Main(string[] args)
-                    {
-                        {0}
-                    }
-                }
-            }";
+            string modele = @"{0}";
 
             return modele.Replace("{0}", codeUtilisateur.Replace("\r\n", "\n").Replace("\n", "\n    "));
         }
