@@ -71,7 +71,7 @@
                 <div class="d-flex align-items-center">
                     <p class="custom-gestion-subtitle" style="white-space:pre-wrap; color: white;">@Result</p>
 
-                    @if (pythonLoading == true)
+                    @if (csharpLoading == true)
                     {
                         <RadzenProgressBarCircular Style="margin-left:10px;" ProgressBarStyle="ProgressBarStyle.Light" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Small" />
                     }
@@ -103,14 +103,20 @@
     [Parameter]
     public int Reference { get; set; }
     public string NomFichier { get; set; }
-    public bool pythonLoading { get; set; }
+    public bool csharpLoading { get; set; }
 
     public Exercice exercice { get; set; }
 
     private StandaloneCodeEditor _editor { get; set; }
     private bool showDeleteConfirmation = false;
-    private const string texteDefaut =
-                           "\t\tConsole.WriteLine(\"Hello World!\");\n";
+    private const string texteDefaut = "using System;\n\n" +
+                           "class Program\n" +
+                           "{\n" +
+                           "\tstatic void Main(string[] args)\n" +
+                           "\t{\n" +
+                           "\t\tConsole.WriteLine(\"Hello World!\");\n" +
+                           "\t}\n" +
+                           "}";
 
     private string TexteDefaut2(string nom)
     {
@@ -256,6 +262,7 @@
         public string Css { get; set; }
         public string Nom { get; set; }
         public string Contenu { get; set; }
+        public DateTime Date { get; set; }
 
         public Fichier(int id, string nom, string contenu)
         {
@@ -263,6 +270,7 @@
             Nom = nom;
             Contenu = contenu;
             Css = "hidden";
+            Date = DateTime.Now;
         }
 
         public Fichier()
@@ -319,37 +327,53 @@
         List<object> fichiers = new List<object>();
 
         Result = "Compilation et exécution du code...";
-        pythonLoading = true;
+        csharpLoading = true;
         Console.WriteLine("Running C# code...");
         StateHasChanged();
-        //récupération du fichier dont le nom est program.cs
-        var fichierProgram = FichierCode.FirstOrDefault(f => f.Nom.Equals("program.cs", StringComparison.OrdinalIgnoreCase));
-        foreach (var fichier in FichierCode)
+        //récupération du fichier dont le nom est program.cs et dont la date se rapproche le lpus de la date d'aujourd'hui
+        Fichier fichierExecute = new Fichier();
+        var fichierProgram = FichierCode
+                            .Where(f => f.Nom.Equals("program.cs", StringComparison.OrdinalIgnoreCase))
+                            .OrderBy(f => Math.Abs((f.Date - DateTime.Now).TotalMilliseconds))
+                            .FirstOrDefault();
+
+        if (fichierProgram != null)
         {
-            if (fichierProgram != null)
-            {
-               // string texte = await GetCode();
-                string texte = fichierProgram.Contenu;
-                fichiers.Add(new
-                {
-                    Nom = fichier.Nom,
-                    Contenu = texte // Ne modifiez pas le contenu
-                });
-            }
+            fichierExecute = fichierProgram;
         }
+        else
+        {
+            Result = "Fichier program.cs introuvable.";
+            csharpLoading = false;
+            StateHasChanged();
+            return;
+        }
+        // foreach (var fichier in FichierCode)
+        // {
+        //     if (fichierProgram != null)
+        //     {
+        //        // string texte = await GetCode();
+        //         string texte = fichierProgram.Contenu;
+        //         fichiers.Add(new
+        //         {
+        //             Nom = fichier.Nom,
+        //             Contenu = texte // Ne modifiez pas le contenu
+        //         });
+        //     }
+        // }
 
         // Sérialisation en JSON
-        string jsonString = JsonConvert.SerializeObject(fichiers);
+        string jsonString = JsonConvert.SerializeObject(fichierExecute);
 
         // Désérialisation pour obtenir uniquement le contenu
         dynamic temp = JsonConvert.DeserializeObject(jsonString);
         string code = string.Empty;
-
+        code += temp.Contenu;
         // Récupération du contenu
-        foreach (var item in temp)
-        {
-            code += item.Contenu + "\n"; // Combinez les contenus si nécessaire
-        }
+        // foreach (var item in temp)
+        // {
+        //     code += item.Contenu + "\n"; // Combinez les contenus si nécessaire
+        // }
 
         try
         {
@@ -363,7 +387,7 @@
         }
         finally
         {
-            pythonLoading = false;
+            csharpLoading = false;
             StateHasChanged();
         }
     }
