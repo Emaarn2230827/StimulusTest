@@ -97,29 +97,32 @@ namespace STIMULUS_V2.Server.Services
             return new APIResponse<bool>(false, 404, "Exercice non trouvé");
         }
 
-        private void VerifierBesoinDonnees(string codeUtilisateur)
-        {
-            var regex = new Regex(@"Console\.ReadLine\s*\(\s*\)\s*;");
-            var matches = regex.Matches(codeUtilisateur);
-            cptReadLine = matches.Count;
-        }
+        //private int VerifierBesoinDonnees(string codeUtilisateur)
+        //{
+        //    int cptR = 0;
+        //    var regex = new Regex(@"Console\.ReadLine\s*\(\s*\)\s*;");
+        //    var matches = regex.Matches(codeUtilisateur);
+        //    cptR = matches.Count;
+        //    return cptR;
+        //}
 
         /// <summary>
         /// Envoie le code à dotnet et compile le code
         /// </summary>
         /// <returns></returns>
-        public async Task<APIResponse<string>> ExecuteCode(string codeUtilisateur)
+        public async Task<APIResponse<string>> ExecuteCode(string codeUtilisateur, int cptRLine, string[] dataReadLine)
         {
-            VerifierBesoinDonnees(codeUtilisateur);
-
-            if (cptReadLine > 0)
-            {
-                donneesUtilisateur = new string[cptReadLine];
-                for (int i = 0; i < cptReadLine; i++)
-                {
-                    donneesUtilisateur[i] = await PromptUser($"Entrez la valeur pour Console.ReadLine() #{i + 1}:");
-                }
-            }
+            //VerifierBesoinDonnees(codeUtilisateur);
+            cptReadLine = cptRLine;
+            donneesUtilisateur = dataReadLine;
+            //if (cptReadLine > 0)
+            //{
+            //    donneesUtilisateur = new string[cptReadLine];
+            //    for (int i = 0; i < cptReadLine; i++)
+            //    {
+            //        donneesUtilisateur[i] = await PromptUser($"Entrez la valeur pour Console.ReadLine() #{i + 1}:");
+            //    }
+            //}
 
             string cheminFichier = Path.Combine(Path.GetTempPath(), "MonProjet");
             string nomFichier = Path.Combine(cheminFichier, "Program.cs");
@@ -234,11 +237,11 @@ namespace STIMULUS_V2.Server.Services
             return modele.Replace("{0}", codeUtilisateur.Replace("\r\n", "\n").Replace("\n", "\n    "));
         }
 
-        private async Task<string> PromptUser(string message)
-        {
-            // Placeholder pour l'appel JavaScript. Remplacer par une logique de prompt appropriée.
-            return await Task.FromResult("Valeur de l'utilisateur");
-        }
+        //private async Task<string> PromptUser(string message)
+        //{
+        //    // Placeholder pour l'appel JavaScript. Remplacer par une logique de prompt appropriée.
+        //    return await Task.FromResult("Valeur de l'utilisateur");
+        //}
 
     }
 }

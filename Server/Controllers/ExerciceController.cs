@@ -35,17 +35,17 @@ namespace STIMULUS_V2.Server.Controllers
         //    return StatusCode(response.StatusCode, response);
         //}
 
-        [HttpPost("Execute")]
-        public async Task<IActionResult> ExecuteCode([FromBody] string code)
-        {
-            if (string.IsNullOrWhiteSpace(code))
-            {
-                return BadRequest("Le code ne peut pas être vide.");
-            }
+        //[HttpPost("Execute")]
+        //public async Task<IActionResult> ExecuteCode([FromBody] string code)
+        //{
+        //    if (string.IsNullOrWhiteSpace(code))
+        //    {
+        //        return BadRequest("Le code ne peut pas être vide.");
+        //    }
 
-            var response = await exerciceService.ExecuteCode(code);
-            return StatusCode(response.StatusCode, response);
-        }
+        //    var response = await exerciceService.ExecuteCode(code);
+        //    return StatusCode(response.StatusCode, response);
+        //}
 
 
 

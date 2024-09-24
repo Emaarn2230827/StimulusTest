@@ -45,7 +45,7 @@ namespace STIMULUS_V2.Client.Services
             }
         }
 
-        public async Task<APIResponse<string>> ExecuteCode(string json)
+        public async Task<APIResponse<string>> ExecuteCode(string json, int cptReadLine, string[] dataReadLine)
         {
             try
             {

@@ -9,6 +9,7 @@
 @using System.Text;
 @using System.Net.Http;
 @using System.Net.Http.Headers;
+@using System.Text.RegularExpressions;
 
 @inject IFichierSauvegardeService FichierSauvegardeService
 @inject IExerciceService ExerciceService
@@ -319,18 +320,55 @@
         await JS.InvokeVoidAsync("HighlightFunctions.highlightSnippets");
     }
 
+    // Permet de compter le nombre de Console.ReadLine présent dans le code et de retourner le nombre
+    private int VerifierBesoinDonnees(string codeUtilisateur)
+    {
+        int cptR = 0;
+        var regex = new Regex(@"Console\.ReadLine\s*\(\s*\)\s*;");
+        var matches = regex.Matches(codeUtilisateur);
+        cptR = matches.Count;
+        return cptR;
+    }
+
+    // permet l'insertion des données de tous les readLine
+    private async Task<string[]> InsertionDoneesReadLine(int cpt)
+    {
+        // Initialisation de `dataReadLine` à null
+        string[] dataReadLine = null;
+
+        // Vérification si cpt est positif
+        if (cpt > 0)
+        {
+            // Initialisation du tableau de chaîne avec la taille de cpt
+            dataReadLine = new string[cpt];
+
+            // Boucle pour obtenir les valeurs via JS
+            for (int i = 0; i < cpt; i++)
+            {
+                // Utilisation de l'invocation JS pour obtenir les données utilisateur
+                dataReadLine[i] = await JS.InvokeAsync<string>("prompt", $"Entrez la valeur pour Console.ReadLine() #{i + 1}:");
+            }
+        }
+
+        // Retourner le tableau (ou null si cpt <= 0)
+        return dataReadLine;
+    }
+
     /// <summary>
     /// Envoit le code de l'étudiant à l'interpréteur  //A changer
     /// </summary>
     private async void Post()
     {
+        
+        int cptReadLn = 0;
+        string[] datatReadLine = null;
         List<object> fichiers = new List<object>();
 
         Result = "Compilation et exécution du code...";
         csharpLoading = true;
         Console.WriteLine("Running C# code...");
         StateHasChanged();
-        //récupération du fichier dont le nom est program.cs et dont la date se rapproche le lpus de la date d'aujourd'hui
+        //récupération du fichier dont le nom est program.cs et dont la date se rapproche le plus de la date d'aujourd'hui
         Fichier fichierExecute = new Fichier();
         var fichierProgram = FichierCode
                             .Where(f => f.Nom.Equals("program.cs", StringComparison.OrdinalIgnoreCase))
@@ -340,6 +378,8 @@
         if (fichierProgram != null)
         {
             fichierExecute = fichierProgram;
+            cptReadLn = VerifierBesoinDonnees(fichierProgram.Contenu);
+            datatReadLine = await InsertionDoneesReadLine(cptReadLn);
         }
         else
         {
@@ -347,6 +387,7 @@
             csharpLoading = false;
             StateHasChanged();
             return;
+
         }
         // foreach (var fichier in FichierCode)
         // {
@@ -378,7 +419,7 @@
         try
         {
             // Envoi du code à l'API
-            var response = await ExerciceService.ExecuteCode(code);
+            var response = await ExerciceService.ExecuteCode(code, cptReadLn, datatReadLine);
             Result = response.Data ?? "No output returned.";
         }
         catch (Exception e)
