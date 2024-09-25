@@ -110,11 +110,11 @@ namespace STIMULUS_V2.Server.Services
         /// Envoie le code à dotnet et compile le code
         /// </summary>
         /// <returns></returns>
-        public async Task<APIResponse<string>> ExecuteCode(string codeUtilisateur, int cptRLine, string[] dataReadLine)
+        public async Task<APIResponse<string>> ExecuteCode(ExecuteCodeRequest request)
         {
             //VerifierBesoinDonnees(codeUtilisateur);
-            cptReadLine = cptRLine;
-            donneesUtilisateur = dataReadLine;
+            cptReadLine = request.Cpt;
+            donneesUtilisateur = request.DataRead;
             //if (cptReadLine > 0)
             //{
             //    donneesUtilisateur = new string[cptReadLine];
@@ -132,7 +132,7 @@ namespace STIMULUS_V2.Server.Services
 
             // Crée le dossier de la solution
             Directory.CreateDirectory(cheminFichier);
-            await File.WriteAllTextAsync(nomFichier, GenerateProgramFile(codeUtilisateur));
+            await File.WriteAllTextAsync(nomFichier, GenerateProgramFile(request.Code));
 
             string projetContenu = @"
             <Project Sdk=""Microsoft.NET.Sdk"">

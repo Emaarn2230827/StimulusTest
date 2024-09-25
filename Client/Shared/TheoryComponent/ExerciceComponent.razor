@@ -247,8 +247,7 @@
     private string IdEtudiant { get; set; } = string.Empty;
     private string Result { get; set; } = string.Empty;
     private bool InitDone { get; set; } = false;
-
-
+ 
     /// <summary>
     /// Classe interne pour les fichiers
     /// Le fichier est caché par défaut
@@ -257,6 +256,8 @@
     /// <param name="Css"> Permet d'afficher ou cacher le textarea </param>
     /// <param name="Nom"> Nom du fichier </param>
     /// <param name="Contenu"> Code du fichier </param>
+
+    /// 
     public class Fichier
     {
         public int Id { get; set; }
@@ -359,9 +360,7 @@
     /// </summary>
     private async void Post()
     {
-        
-        int cptReadLn = 0;
-        string[] datatReadLine = null;
+        ExecuteCodeRequest codeRequestSend = new ExecuteCodeRequest();
         List<object> fichiers = new List<object>();
 
         Result = "Compilation et exécution du code...";
@@ -378,8 +377,8 @@
         if (fichierProgram != null)
         {
             fichierExecute = fichierProgram;
-            cptReadLn = VerifierBesoinDonnees(fichierProgram.Contenu);
-            datatReadLine = await InsertionDoneesReadLine(cptReadLn);
+            codeRequestSend.Cpt = VerifierBesoinDonnees(fichierProgram.Contenu);
+            codeRequestSend.DataRead = await InsertionDoneesReadLine(codeRequestSend.Cpt);
         }
         else
         {
@@ -408,8 +407,8 @@
 
         // Désérialisation pour obtenir uniquement le contenu
         dynamic temp = JsonConvert.DeserializeObject(jsonString);
-        string code = string.Empty;
-        code += temp.Contenu;
+        //string code = string.Empty;
+        codeRequestSend.Code = temp.Contenu;
         // Récupération du contenu
         // foreach (var item in temp)
         // {
@@ -419,7 +418,7 @@
         try
         {
             // Envoi du code à l'API
-            var response = await ExerciceService.ExecuteCode(code, cptReadLn, datatReadLine);
+            var response = await ExerciceService.ExecuteCode(codeRequestSend);
             Result = response.Data ?? "No output returned.";
         }
         catch (Exception e)
